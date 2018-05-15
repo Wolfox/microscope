@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+## Copyright (C) 2018 Tiago Susano Pinto <tiagosusanopito@gmail.com>
 ## Copyright (C) 2017 David Pinto <david.pinto@bioch.ox.ac.uk>
 ## Copyright (C) 2016 Mick Phillips <mick.phillips@gmail.com>
 ##
@@ -903,3 +904,46 @@ class LaserDevice(Device):
         """Set the power from an argument in mW and save the set point."""
         self._set_point = mw
         self._set_power_mw(mw)
+
+
+class ExecutorDevice(Device):
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def __init__(self, *args, **kwargs):
+        super(ExecutorDevice, self).__init__(*args, **kwargs)
+        self.connection = None
+
+    @abc.abstractmethod
+    def get_digital(self, digitalPin):
+        pass
+
+    @abc.abstractmethod
+    def set_digital(self, digitalPin, value):
+        pass
+
+    @abc.abstractmethod
+    def get_analog(self, analogOutput):
+        pass
+
+    @abc.abstractmethod
+    def set_analog(self, analogOutput, value):
+        pass
+
+    def executeTable(self, name, table, startIndex, stopIndex, numReps, repDuration):
+        # # Take time and arguments (i.e. omit handler) from table to generate actions.
+        # t0 = float(table[startIndex][0])
+        # actions = [(float(row[0])-t0,) + tuple(row[2:]) for row in table[startIndex:stopIndex]]
+        # # If there are repeats, add an extra action to wait until repDuration expired.
+        # if repDuration is not None:
+        #     repDuration = float(repDuration)
+        #     if actions[-1][0] < repDuration:
+        #         # Repeat the last event at t0 + repDuration
+        #         actions.append( (t0+repDuration,) + tuple(actions[-1][1:]) )
+        # events.publish(events.UPDATE_STATUS_LIGHT, 'device waiting',
+        #         'Waiting for\nDSP to finish', (255, 255, 0))
+        # self.connection.PrepareActions(actions, numReps)
+        # events.executeAndWaitFor(events.EXECUTOR_DONE % self.name, self.connection.RunActions)
+        # events.publish(events.EXPERIMENT_EXECUTION)
+        # return
+        pass

@@ -42,28 +42,38 @@ class RedPitaya(devices.ExecutorDevice):
     def set_analog(self, analogOutput, value):
         self.connection.moveAbsoluteADU(analogOutput, value)
 
-        # numReps and repDuration not implemented
-    def executeTable(self, name, table, startIndex = 0, stopIndex = None,
-        numReps = 0, repDuration = 0):
+    # Volts can be between -1 to 1
+    def convertVoltsToADUs(self, volts):
+        if volts > 0:
+            return int(volts*8191)
+        return int(volts*8192)
+
+    # numReps and repDuration not implemented
+    def executeTable(self, name, table, setup = None, startIndex = 0,
+        stopIndex = None, numReps = 0, repDuration = 0):
         times = []
         pins = []
         values = []
 
         events = table[startIndex:stopIndex]
         baseTime = events[0][0]
+        times.append(time - baseTime)
         for time, handler, action in events:
             time = int(float(time) + .5)
-            # if handler in self.handlerToDigitalLine:
-            #     pins.append(self.handlerToDigitalLine[handler]);
-            #     values.append(value);
-            # elif handler in self.handlerToAnalogLine:
-            #     pins.append(self.handlerToAnalogLine[handler]);
-            #     values.append(self.convertMicronsToADUs(aline, action));
-            # else:
-            #     raise RuntimeError("Unhandled handler when generating DSP profile: %s" % handler.name)
-            times.append(time - baseTime);
-            pins.append(handler)
-            values.append(action)
+            if setup:
+                if handler in setup.handlerToDigitalLine:
+                    pins.append(setup.handlerToDigitalLine[handler])
+                    values.append(action)
+                elif handler in setup.handlerToAnalogLine:
+                    pins.append(setup.handlerToAnalogLine[handler])
+                    values.append(self.convertVoltsToAnalogUnits(action))
+                else:
+                    raise RuntimeError(
+                        "Unhandled handler when generating DSP profile: %s"
+                        % handler.name)
+            else:
+                pins.append(handler)
+                values.append(action)
 
         self.connection.setProfile(times, pins, values)
         self.connection.downloadProfile()

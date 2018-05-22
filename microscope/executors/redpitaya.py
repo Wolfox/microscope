@@ -17,6 +17,7 @@
 ## along with Microscope.  If not, see <http://www.gnu.org/licenses/>.
 
 import Pyro4
+import time
 from microscope import devices
 
 class RedPitaya(devices.ExecutorDevice):
@@ -37,46 +38,35 @@ class RedPitaya(devices.ExecutorDevice):
         self.connection.writeDigital(digitalPin, value)
 
     def get_analog(self, analogOutput):
-        return self.connection.readPosition(analogOutput)
+        return self.connection.readAnalog(analogOutput)
 
     def set_analog(self, analogOutput, value):
-        self.connection.moveAbsoluteADU(analogOutput, value)
+        self.connection.writeAnalog(analogOutput, value)
 
-    # Volts can be between -1 to 1
-    def convertVoltsToADUs(self, volts):
-        if volts > 0:
-            return int(volts*8191)
-        return int(volts*8192)
-
-    # numReps and repDuration not implemented
     def executeTable(self, name, table, setup = None, startIndex = 0,
         stopIndex = None, numReps = 0, repDuration = 0):
-        times = []
-        pins = []
-        values = []
+        prevIndex = startIndex
+        lastIndex = stopIndex if stopIndex else len(table)
+        for i in range(prevIndex, lastIndex):
+            if table[i][2] < 0:
+                table[prevIndex:i]
+                table[prevIndex:i] = sorted(table[prevIndex:i])
+                if table[i][0] < table[i-1][0]:
+                    table[i][0] = table[i-1][0]
+                prevIndex = i+1
+        if prevIndex < lastIndex:
+            table[prevIndex:lastIndex] = sorted(table[prevIndex:lastIndex])
 
-        events = table[startIndex:stopIndex]
-        baseTime = events[0][0]
-        times.append(time - baseTime)
-        for time, handler, action in events:
-            time = int(float(time) + .5)
-            if setup:
-                if handler in setup.handlerToDigitalLine:
-                    pins.append(setup.handlerToDigitalLine[handler])
-                    values.append(action)
-                elif handler in setup.handlerToAnalogLine:
-                    pins.append(setup.handlerToAnalogLine[handler])
-                    values.append(self.convertVoltsToAnalogUnits(action))
-                else:
-                    raise RuntimeError(
-                        "Unhandled handler when generating DSP profile: %s"
-                        % handler.name)
-            else:
-                pins.append(handler)
-                values.append(action)
+        baseTime = table[startIndex] if startIndex else 0
+        for line in table[startIndex:stopIndex]:
+            line[0] -= baseTime
+            if line[2] < 0:
+                break
 
-        self.connection.setProfile(times, pins, values)
+        self.connection.setProfile(table[startIndex:stopIndex], setup)
         self.connection.downloadProfile()
         self.connection.trigCollect()
 
-        return
+        for i in range(numReps):
+            time.sleep(repDuration)
+            self.connection.trigCollect()

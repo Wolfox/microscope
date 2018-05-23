@@ -31,42 +31,46 @@ class RedPitaya(devices.ExecutorDevice):
             self.connection = None
             print(e)
 
-    def get_digital(self, digitalPin):
-        return self.connection.readDigital(digitalPin)
+    def get_digital(self, digital_line):
+        return self.connection.readDigital(digital_line)
 
-    def set_digital(self, digitalPin, value):
-        self.connection.writeDigital(digitalPin, value)
+    def set_digital(self, digital_line, value):
+        self.connection.writeDigital(digital_line, value)
 
-    def get_analog(self, analogOutput):
-        return self.connection.readAnalog(analogOutput)
+    def get_analog(self, analog_output):
+        return self.connection.readAnalog(analog_output)
 
-    def set_analog(self, analogOutput, value):
-        self.connection.writeAnalog(analogOutput, value)
+    def set_analog(self, analog_output, value):
+        self.connection.writeAnalog(analog_output, value)
 
-    def executeTable(self, name, table, setup = None, startIndex = 0,
-        stopIndex = None, numReps = 0, repDuration = 0):
-        prevIndex = startIndex
-        lastIndex = stopIndex if stopIndex else len(table)
-        for i in range(prevIndex, lastIndex):
-            if table[i][2] < 0:
-                table[prevIndex:i]
-                table[prevIndex:i] = sorted(table[prevIndex:i])
-                if table[i][0] < table[i-1][0]:
-                    table[i][0] = table[i-1][0]
-                prevIndex = i+1
-        if prevIndex < lastIndex:
-            table[prevIndex:lastIndex] = sorted(table[prevIndex:lastIndex])
+    def execute_table(self, table, name = None, setup = None, start_index = 0,
+        stop_index = None, repeats = 0, interval = 0):
+        baseTime = table[start_index] if start_index else 0
+        actionTable = []
+        for time, handler, action in table[start_index:stop_index]:
+            actionTable.append([time, handler, action])
 
-        baseTime = table[startIndex] if startIndex else 0
-        for line in table[startIndex:stopIndex]:
+        prev_index = 0
+        for i in range(1, len(actionTable)):
+            if actionTable[i][2] < 0:
+                actionTable[prev_index:i]
+                actionTable[prev_index:i] = sorted(actionTable[prev_index:i])
+                if actionTable[i][0] < actionTable[i-1][0]:
+                    actionTable[i][0] = actionTable[i-1][0]
+                prev_index = i+1
+        if prev_index < len(actionTable):
+            actionTable[prev_index:] = sorted(actionTable[prev_index:])
+
+        baseTime = actionTable[0] if start_index else 0
+        for line in actionTable:
             line[0] -= baseTime
             if line[2] < 0:
                 break
 
-        self.connection.setProfile(table[startIndex:stopIndex], setup)
-        self.connection.downloadProfile()
+        self.connection.setProfile(actionTable, setup)
+        self.connection.downloadProfile(name)
         self.connection.trigCollect()
 
-        for i in range(numReps):
-            time.sleep(repDuration)
+        for i in range(repeats):
+            time.sleep(interval)
             self.connection.trigCollect()

@@ -915,22 +915,27 @@ class ExecutorDevice(Device):
         self.connection = None
 
     @abc.abstractmethod
-    def get_digital(self, digitalPin):
+    def get_digital(self, digital_line):
+        """Get digital output values from a digital line."""
         pass
 
     @abc.abstractmethod
-    def set_digital(self, digitalPin, value):
+    def set_digital(self, digital_line, value):
+        """Set digital output values of a digital line."""
         pass
 
     @abc.abstractmethod
-    def get_analog(self, analogOutput):
+    def get_analog(self, analog_output):
+        """Get value from a specific analog output."""
         pass
 
     @abc.abstractmethod
-    def set_analog(self, analogOutput, value):
+    def set_analog(self, analog_output, value):
+        """Set value of a specific analog output."""
         pass
 
     @abc.abstractmethod
-    def executeTable(self, name, table, setup, startIndex, stopIndex,
-        numReps, repDuration):
+    def execute_table(self, table, name = None, setup = None, start_index = 0,
+        stop_index = None, repeats = 0, interval = 0):
+        """Execute an action table."""
         pass

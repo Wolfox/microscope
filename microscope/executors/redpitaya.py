@@ -52,7 +52,7 @@ class RedPitaya(devices.ExecutorDevice):
 
         prev_index = 0
         for i in range(1, len(actionTable)):
-            if actionTable[i][2] < 0:
+            if actionTable[i][1] >= 0 and actionTable[i][2] < 0:
                 actionTable[prev_index:i]
                 actionTable[prev_index:i] = sorted(actionTable[prev_index:i])
                 if actionTable[i][0] < actionTable[i-1][0]:
@@ -64,7 +64,7 @@ class RedPitaya(devices.ExecutorDevice):
         baseTime = actionTable[0] if start_index else 0
         for line in actionTable:
             line[0] -= baseTime
-            if line[2] < 0:
+            if line[1] >= 0 and line[2] < 0:
                 break
 
         self.connection.setProfile(actionTable, setup)
